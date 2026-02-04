@@ -1,0 +1,8 @@
+node_modules
+models/*
+uploads/*
+.env
+.dist
+
+/src/generated/prisma
+prisma/generated

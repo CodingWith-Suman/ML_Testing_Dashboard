@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  emp_id    String?  @unique
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   String   @default("dv-1.0.0")
+  batches   Batch[]
+}
+
+model Batch {
+  id            String           @id @default(cuid())
+  scanType      scanType
+  totalNumFiles Int?
+  createdAt     DateTime         @default(now())
+  creatorId     String
+  version       String           @default("dv-1.0.0")
+  creator       User             @relation(fields: [creatorId], references: [id])
+  dbs           Db[]
+  documents     DocumentResult[]
+  images        ImageResult[]
+  piiSelects    PiiSelected[]
+}
+
+model PiiSelected {
+  id      String   @id @default(cuid())
+  piiName String[]
+  version String   @default("dv-1.0.0")
+  batchId String?
+  batch   Batch?   @relation(fields: [batchId], references: [id])
+
+  @@index([batchId])
+}
+
+model ImageResult {
+  id         String     @id @default(cuid())
+  fileName   String
+  label      imageLabel
+  confidence Int
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  version    String     @default("dv-1.0.0")
+  batchId    String?
+  Batch      Batch?     @relation(fields: [batchId], references: [id])
+}
+
+model DocumentResult {
+  id              String                   @id @default(cuid())
+  fileName        String
+  fileType        String?
+  piiFound        Boolean                  @default(false)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  version         String                   @default("dv-1.0.0")
+  batchId         String?
+  classifications DocumentClassification[]
+  batch           Batch?                   @relation(fields: [batchId], references: [id])
+
+  @@index([batchId])
+}
+
+model DocumentClassification {
+  id         String         @id @default(cuid())
+  piiType    String
+  count      Int
+  documentId String
+  version    String         @default("dv-1.0.0")
+  document   DocumentResult @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+model Db {
+  id                   String              @id @default(cuid())
+  databaseName         String
+  scanType             dbScanType
+  dbType               dbType
+  totalNumOfTableScans Int?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  version              String              @default("dv-1.0.0")
+  batchId              String
+  batch                Batch               @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  dbFullPiiMetadata    dbFullPiiMetadata[]
+  dbPiiResults         dbFullPiiResult[]
+
+  @@index([batchId])
+}
+
+model dbFullPiiMetadata {
+  id          String @id @default(cuid())
+  tableName   String
+  rowCount    Int
+  pii         Int
+  identifiers Int
+  behavioral  Int
+  owner       String
+  version     String @default("dv-1.0.0")
+  dbId        String
+  db          Db     @relation(fields: [dbId], references: [id], onDelete: Cascade)
+
+  @@index([dbId])
+}
+
+model dbFullPiiResult {
+  id             String          @id @default(cuid())
+  tableName      String
+  columnName     String?
+  datatype       String?
+  classification Classification?
+  scanned        Int?
+  matched        Int?
+  accuracy       Float?
+  version        String          @default("dv-1.0.0")
+  dbId           String
+  db             Db              @relation(fields: [dbId], references: [id], onDelete: Cascade)
+
+  @@index([dbId])
+}
+
+enum imageLabel {
+  AADHAAR
+  PAN
+  PASSPORT
+}
+
+enum scanType {
+  IMAGE_SCAN
+  PDF_SCAN
+  DOCUMENT_SCAN
+  DB_SCAN
+}
+
+enum dbScanType {
+  PII_META
+  PII_FULL
+  PII_TABLE
+}
+
+enum dbType {
+  POSTGRES
+  MYSQL
+  ORACLE
+}
+
+enum Classification {
+  pii
+  identifiers
+  Behavioral
+  Operational
+}
