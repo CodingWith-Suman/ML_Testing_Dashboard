@@ -21,7 +21,7 @@ services:
       POSTGRES_PASSWORD: classify_pass
       POSTGRES_DB: classify_db
     volumes:
-      - classifyTestPOSTGRES_data:/var/lib/postgresql   # ✅ new recommended mount
+      - classifyTestPOSTGRES_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
 
